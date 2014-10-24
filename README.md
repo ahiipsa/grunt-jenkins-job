@@ -2,6 +2,11 @@
 
 just run Jenkins job build
 
+## Install
+
+```sh
+$ npm install grunt-jenkins-job
+```
 
 ## Example config:
 
@@ -24,7 +29,7 @@ just run Jenkins job build
 		}
 	});
 	
-	
+	grunt.loadNpmTasks('grunt-jenkins-job');
 	grunt.registerTask('default', ['grunt-jenkins-job:deployDev']);
 	
 ```
