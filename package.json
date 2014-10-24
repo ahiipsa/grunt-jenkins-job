@@ -1,0 +1,32 @@
+{
+    "name": "grunt-jenkins-job",
+    "version": "0.0.1",
+    "description": "just run Jenkins job build",
+    "keywords": [
+        "grunt",
+        "gruntplugin",
+        "jenkins",
+        "job",
+        "build",
+        "run"
+    ],
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/ahiipsa/grunt-jankins-job.git"
+    },
+    "bugs": {
+        "url": "https://github.com/ahiipsa/grunt-jankins-job/issues"
+    },
+    "author": "ahiipsa",
+    "license": "MIT",
+    "readmeFilename": "README.md",
+    "dependencies": {
+        "request": "^2.45.0"
+    },
+    "peerDependencies": {
+        "grunt": ">=0.4.0"
+    }
+}
