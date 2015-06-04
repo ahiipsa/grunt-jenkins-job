@@ -20,10 +20,12 @@ $ npm install grunt-jenkins-job
 			tasks: {
 				deployDev: {
 					jobName: 'deploy_dev_restapi',
-					parameter: {
-						name: 'BRANCH',
-						value: 'master'
-					}
+					parameter: [
+                        {
+                            name: 'BRANCH',
+                            value: 'master'
+                        }
+					]
 				}
 			}
 		}

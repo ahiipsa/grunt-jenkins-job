@@ -15,10 +15,10 @@
     },
     "repository": {
         "type": "git",
-        "url": "git://github.com/ahiipsa/grunt-jankins-job.git"
+        "url": "git://github.com/ahiipsa/grunt-jenkins-job.git"
     },
     "bugs": {
-        "url": "https://github.com/ahiipsa/grunt-jankins-job/issues"
+        "url": "https://github.com/ahiipsa/grunt-jenkins-job/issues"
     },
     "author": "ahiipsa",
     "license": "MIT",
