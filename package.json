@@ -1,6 +1,6 @@
 {
     "name": "grunt-jenkins-job",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "description": "just run Jenkins job build",
     "keywords": [
         "grunt",
