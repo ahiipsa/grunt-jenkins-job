@@ -8,14 +8,27 @@ just run Jenkins job build
 $ npm install grunt-jenkins-job
 ```
 
+create file `.jenkins.json`
+
+example `.jenkins.json`
+```json
+{
+	"login": "login",
+	"password": "password"
+}
+```
+
+add `.jenkins` to `.gitignore`
+
 ## Example config:
 
 ```javascript
 
 	grunt.initConfig({
+		jenkins: grunt.file.readJSON('.jenkins.json'),
 		'grunt-jenkins-job': {
-			username: 'user_name',
-			password: 'user_password',
+			username: '<%=jenkins.login%>',
+			password: '<%=jenkins.password%>',
 			host: 'https://myjenkins.com',
 			tasks: {
 				deployDev: {
