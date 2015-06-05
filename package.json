@@ -22,7 +22,6 @@
     },
     "author": "ahiipsa",
     "license": "MIT",
-    "readmeFilename": "README.md",
     "dependencies": {
         "request": "^2.45.0"
     },
