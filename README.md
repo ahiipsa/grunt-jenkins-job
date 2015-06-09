@@ -1,16 +1,16 @@
 # grunt-jenkins-job
 
-just run Jenkins job build
+Just run build jenkins job 
 
 ## Install
 
 ```sh
-$ npm install grunt-jenkins-job
+npm install grunt-jenkins-job
 ```
 
-create file `.jenkins.json`
+## Config
 
-example `.jenkins.json`
+Create file `.jenkins.json` example:
 ```json
 {
 	"login": "login",
@@ -18,12 +18,17 @@ example `.jenkins.json`
 }
 ```
 
-add `.jenkins` to `.gitignore`
+Add `.jenkins` to `.gitignore`
 
-## Example config:
+```sh
+echo .jenskins.json >> .gitignore
+```
+
+Add config to `Gruntfile.js`
+
+### Example config:
 
 ```javascript
-
 	grunt.initConfig({
 		jenkins: grunt.file.readJSON('.jenkins.json'),
 		'grunt-jenkins-job': {
@@ -32,12 +37,16 @@ add `.jenkins` to `.gitignore`
 			host: 'https://myjenkins.com',
 			tasks: {
 				deployDev: {
-					jobName: 'deploy_dev_restapi',
+					jobName: 'deploy_dev',
 					parameter: [
-                        {
-                            name: 'BRANCH',
-                            value: 'master'
-                        }
+						{
+							name: 'param1',
+							value: 'value1'
+						},
+						{
+							name: 'param2',
+							value: 'value2'
+						}
 					]
 				}
 			}
@@ -45,6 +54,11 @@ add `.jenkins` to `.gitignore`
 	});
 	
 	grunt.loadNpmTasks('grunt-jenkins-job');
-	grunt.registerTask('default', ['grunt-jenkins-job:deployDev']);
-	
+	grunt.registerTask('deploydev', ['grunt-jenkins-job:deployDev']);
+```
+
+## Run
+
+```sh
+grunt deploydev
 ```
