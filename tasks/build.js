@@ -5,6 +5,7 @@
 
 module.exports = function (grunt) {
     var util = require('util'),
+        extend = require('util')._extend,
         request = require('request'),
         jar = request.jar();
 
@@ -15,9 +16,16 @@ module.exports = function (grunt) {
         grunt.config.requires('grunt-jenkins-job.host');
         grunt.config.requires('grunt-jenkins-job.tasks.' + task );
         grunt.config.requires('grunt-jenkins-job.tasks.' + task + '.jobName' );
-
+        var _ = grunt.util._;
         var config = grunt.config('grunt-jenkins-job'),
             done = this.async();
+        
+        var ifFunction = function(valueToCheck){
+          if (typeof valueToCheck !=='undefined' && valueToCheck!==null && _.isFunction(valueToCheck)){
+            return valueToCheck.apply(grunt, []);
+          }
+          return valueToCheck;          
+        }
 
         if(!config.tasks[task].jobName){
             grunt.fail.warn( util.format('Required config property "grunt-jenkins-job.tasks.%s.jobName" missing.', task) );
@@ -28,11 +36,57 @@ module.exports = function (grunt) {
 
         // const
         var PATH_LOGIN = '/j_acegi_security_check',
-            PATH_BUILD = '/job/%s/build/api/json',
-            PATH_LAST_BUILD = '/job/%s/lastBuild/api/json';
+            PATH_BUILD = '%s/job/%s/build/api/json',
+            PATH_LAST_BUILD = '/job/%s/lastBuild/api/json',
+            PATH_ACTUAL_BUILD = '/job/%s/%s/api/json',
+            PATH_WITH_PARAMS = '%s/job/%s/buildWithParameters/api/json',
+            PATH_WITH_TOKEN = '?token=%s',
+            PATH_WITH_PARAM = '&%s=%s'
 
         var buildURL = function(path){
             return util.format('%s%s', config.host, path);
+        };   
+
+        var buildPostURL = function(job, jobName){
+          var url = null;
+          var value = null;
+          var name = null;
+          var paramAdded = false;
+          
+          url = util.format(PATH_WITH_PARAMS, config.host, jobName);
+          if(typeof config.token !=='undefined'){
+            url = url.concat(util.format(PATH_WITH_TOKEN,config.token));
+          }else{
+            url = url.concat('?tokenUsed=false');
+          }
+          
+          if(typeof config.parameters !=='undefined' && config.parameters !==null && config.parameters.length>0){
+            config.parameters = ifFunction(config.parameters);
+            paramAdded = true;
+            for(var param in config.parameters){
+              param = ifFunction(param);
+              name = ifFunction(config.parameters[param].name);
+              value = ifFunction(config.parameters[param].value);
+              url = url + util.format(PATH_WITH_PARAM,encodeURIComponent(name),encodeURIComponent(value));
+            }
+          }
+          
+          if(job!==null && typeof job.parameters !=='undefined' && job.parameters !==null && job.parameters.length>0){
+            job.parameters = ifFunction(job.parameters);
+            paramAdded = true;
+            for(var param in job.parameters){
+              param = ifFunction(param);
+              name = ifFunction(job.parameters[param].name);
+              value = ifFunction(job.parameters[param].value);
+              url = url + util.format(PATH_WITH_PARAM,encodeURIComponent(name),encodeURIComponent(value));
+            }
+          }
+          
+          if(!paramAdded){
+            url = util.format(PATH_BUILD, config.host, jobName);
+          }
+          grunt.log.debug(util.format("Build Url = %s", url));
+          return url;
         };
 
         var login = function (cb) {
@@ -56,15 +110,14 @@ module.exports = function (grunt) {
                 if(error || response.statusCode > 399) {
                     return cb(error || 'ERROR_AUTH');
                 }
-
-                return cb(null);
+                return cb( null);
             });
-        };
+         };
 
         var buildJob = function(jobName, cb) {
             var job = config.tasks[jobName],
                 path = util.format(PATH_BUILD, job.jobName),
-                url = buildURL(path);
+                url = buildPostURL(job, job.jobName);
 
             request({
                 url: url,
@@ -72,7 +125,7 @@ module.exports = function (grunt) {
                 strictSSL: false,
                 jar: jar,
                 form: {
-                    json: JSON.stringify({"parameter": job.parameter})
+                    //json: JSON.stringify({"parameter": extend(job.parameter,config.parameter)})
                 }
             }, function(error, response, body) {
                 if(error || response.statusCode > 399) {
@@ -88,16 +141,23 @@ module.exports = function (grunt) {
                         errorCode = 'ERROR_JOB_NOT_FOUND';
                     }
 
-                    return cb(error || errorCode);
+                    return cb(null,error || errorCode);
                 }
-
-                return cb(null);
+                return cb(response.headers['location'],null);
             });
         };
 
-        var getLastBuild = function(jobName, cb) {
-            var job = config.tasks[jobName],
-                path = util.format(PATH_LAST_BUILD, job.jobName);
+        var getLastBuild = function(jobName, buildId, cb) {
+
+            var job = config.tasks[jobName];
+            var path;
+            if(buildId === null){
+              path = util.format(PATH_LAST_BUILD, job.jobName);
+            }else if( buildId === -1 ){
+              return cb(null, null);
+            }else{
+              path = util.format(PATH_ACTUAL_BUILD, job.jobName, buildId);
+            }
 
             request({
                 url: buildURL(path),
@@ -109,8 +169,31 @@ module.exports = function (grunt) {
                 if(error || response.statusCode > 399) {
                     return cb(error || 'ERROR_GET_LAST_BUILD');
                 }
-
                 return cb(null, body);
+            });
+        };
+       
+        var getBuildId = function(queueItem, jobName, cb) {
+           var defaultBuildIdReturn = -1;
+            var r = request({
+                url: queueItem + 'api/json',
+                method: 'GET',
+                strictSSL: false,
+                jar: jar,
+                json: true
+            }, function(error, response, body) {
+
+                if(error || response.statusCode > 399) {
+                    grunt.log.warn(error)
+                    grunt.log.warn(response.statusCode)
+                    return getLastBuild(jobName, defaultBuildIdReturn, cb);
+                }
+                
+                if(typeof body.executable === 'undefined' || body.executable === null){
+                  return getLastBuild(jobName, defaultBuildIdReturn, cb);
+                }else{
+                  return getLastBuild(jobName, body.executable.number, cb);
+                }
             });
         };
 
@@ -121,20 +204,21 @@ module.exports = function (grunt) {
                     grunt.log.warn('Check host, username, password');
                     grunt.log.warn(util.format( 'host: %s, username: %s', config.host, config.username ));
                 }
-
                 return done(false);
             }
+            var buildId = -1;
+            buildJob(task, function(queueItem, err) {
 
-            buildJob(task, function(err) {
                 if(err){
                     grunt.log.error('Run build error', err);
                     return done(false);
                 }
-
+                grunt.log.debug(util.format('Queue Item: %s',queueItem));
                 grunt.log.write(util.format('%s build in progress', task));
-
+                var buildId = -1;
                 var isBuilding = function() {
-                    getLastBuild(task, function(err, build) {
+
+                    getBuildId(queueItem, task, function(err, build) {
                         if(err){
                             grunt.log.writeln('');
                             return done(false);
@@ -142,16 +226,28 @@ module.exports = function (grunt) {
 
                         grunt.log.write('.');
 
-                        if(build.building === false) {
-                            setTimeout(isBuilding, 1000);
+                        if(build === null || build.result === null) {
+                            setTimeout(function() { isBuilding(); }, 1000);
                         } else {
+                            if(typeof config.result_file !=='undefined' && config.result_file !==null){
+                              if(typeof config.result_file === "boolean"){
+                                config.result_file = util.format('%s/.build_result.json',__dirname);
+                              }
+                              grunt.file.write(config.result_file, JSON.stringify(build));
+                              grunt.log.writeln('');
+                              grunt.log.writeln(util.format('Build Result written to: %s',config.result_file));
+                            }
                             grunt.log.writeln('');
-                            grunt.log.ok(util.format('%s build complete', task));
+                            var msg = util.format('%s build %s complete with status of %s', task,build.url,build.result);
+                            if(build.result === 'SUCCESS'){
+                              grunt.log.ok(msg);
+                            }else{
+                              grunt.fail.warn(msg);
+                            }
                             return done(true);
                         }
                     });
                 };
-
                 isBuilding();
             });
         });
