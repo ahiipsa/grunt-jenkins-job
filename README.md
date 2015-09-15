@@ -17,6 +17,24 @@ Create file `.jenkins.json` example:
 	"password": "password"
 }
 ```
+file `.jenkins.json` can store task information as well
+example 2:
+```json
+{
+  "login": "",
+  "password" : "",
+  "token" : "",
+  "run_hux" : {
+    "job_name" : "",
+    "parameters" : [
+      {
+      "name" : "",
+      "value" : ""
+      }
+    ]
+  }
+}
+```
 
 Add `.jenkins` to `.gitignore`
 
@@ -55,6 +73,24 @@ Add config to `Gruntfile.js`
 	
 	grunt.loadNpmTasks('grunt-jenkins-job');
 	grunt.registerTask('deploydev', ['grunt-jenkins-job:deployDev']);
+```
+
+Save Build Reslut json to file:
+
+Add to grunt config:
+
+```javascript
+'grunt-jenkins-job': {
+	result_file: true, // will save result json to current folder with name .build_result.json
+```
+or
+```javascript
+'grunt-jenkins-job': {
+	result_file: 'provide the full path and file name',
+```
+
+```sh
+echo .build_result.json >> .gitignore
 ```
 
 ## Run
