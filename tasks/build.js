@@ -19,6 +19,7 @@ module.exports = function (grunt) {
         var _ = grunt.util._;
         var config = grunt.config('grunt-jenkins-job'),
             done = this.async();
+        var buildIdFound = -1;
         
         var ifFunction = function(valueToCheck){
           if (typeof valueToCheck !=='undefined' && valueToCheck!==null && _.isFunction(valueToCheck)){
@@ -175,26 +176,35 @@ module.exports = function (grunt) {
        
         var getBuildId = function(queueItem, jobName, cb) {
            var defaultBuildIdReturn = -1;
-            var r = request({
-                url: queueItem + 'api/json',
-                method: 'GET',
-                strictSSL: false,
-                jar: jar,
-                json: true
-            }, function(error, response, body) {
-
-                if(error || response.statusCode > 399) {
-                    grunt.log.warn(error)
-                    grunt.log.warn(response.statusCode)
-                    return getLastBuild(jobName, defaultBuildIdReturn, cb);
-                }
-                
-                if(typeof body.executable === 'undefined' || body.executable === null){
-                  return getLastBuild(jobName, defaultBuildIdReturn, cb);
-                }else{
-                  return getLastBuild(jobName, body.executable.number, cb);
-                }
-            });
+           
+           if(buildIdFound!=-1){
+             //grunt.log.writeln('buildIdFound = ' + buildIdFound);
+             return getLastBuild(jobName, buildIdFound, cb);
+           }
+           else
+           {
+                var r = request({
+                    url: queueItem + 'api/json',
+                    method: 'GET',
+                    strictSSL: false,
+                    jar: jar,
+                    json: true
+                }, function(error, response, body) {
+    
+                    if(error || response.statusCode > 399) {
+                        grunt.log.warn(error)
+                        grunt.log.warn(response.statusCode)
+                        return getLastBuild(jobName, defaultBuildIdReturn, cb);
+                    }
+                    
+                    if(typeof body.executable === 'undefined' || body.executable === null){
+                      return getLastBuild(jobName, defaultBuildIdReturn, cb);
+                    }else{
+                      buildIdFound = body.executable.number;        
+                      return getLastBuild(jobName, body.executable.number, cb);
+                    }
+                });
+           }
         };
 
         login(function(err) {
